@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import {User} from "../models/User.js";
-import { loginSchema } from "../validations/validations.js";
+import { addUserSchema, loginSchema } from "../validations/validations.js";
 
 //Generate JWT
 
@@ -49,8 +49,30 @@ export const login=async (req,res,next)=>{
 
 export const addUser=async(req,res,next)=>{
     try {
+        const {error,value}=addUserSchema.validate(req.body);
+         if(error){
+            return res.status(400).json({message:error.details[0].message});
+        }
+
+        const {name,email,password}=value;
+        const existingUser= await User.findOne({email});
+        if(existingUser){
+            return res.status(400).json({message:"User already exists"});
+        }
+
+        const user=await User.create({name,email,password});
+        res.status(201).json({
+              user:{
+                id:user._id,
+                name:user.name,
+                email:user.email,
+                role:user.role
+            }
+
+        })
+
         
     } catch (error) {
-        
+        next(error);
     }
 }

@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limiter';
+import rateLimit from "express-rate-limit"
 
 //Global Api Rate Limiter
 export const globalLimiter=  rateLimit({
