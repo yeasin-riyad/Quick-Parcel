@@ -8,6 +8,7 @@ import compression from 'compression';
 import swaggerUI from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
+import { globalLimiter } from './middlewares/rateLimiter.js';
 
 dotenv.config();
 const app=express();
@@ -21,7 +22,7 @@ app.use(compression());
 app.use(express.json());
 
 //Global Rate Limiter
-// app.use()
+app.use(globalLimiter);
 
 app.use("/api/docs",swaggerUI.serve,swaggerUI.setup(swaggerSpec));
 
