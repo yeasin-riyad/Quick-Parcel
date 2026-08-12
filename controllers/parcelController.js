@@ -1,14 +1,10 @@
 import { Parcel } from "../models/Parcel.js";
-import { createParcelSchema } from "../validations/validations.js";
-import { calculateCost } from "../services/pricing.service.js";
-import { generateTrackingId } from "../utils/generateTrackingId.js";
+import { addCheckpointSchema, createParcelSchema } from "../validations/validations.js";
+import { calculateCost } from "../services/calculateCost.js";
+import { generateTrackingId } from "../services/generateTrackingId.js";
 
 export const createParcel = async (req, res, next) => {
   try {
-    // ------------------------------------
-    // 1. Validate request body
-    // ------------------------------------
-
     const { error, value } = createParcelSchema.validate(req.body);
 
     if (error) {
@@ -93,6 +89,100 @@ export const createParcel = async (req, res, next) => {
       message: "Parcel created successfully",
 
       data: {
+        parcel,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMyParcels = async (req, res, next) => {
+  try {
+    const parcels = await Parcel.find({
+      user: req.user._id,
+    }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: parcels.length,
+      data: parcels,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const getParcelByTrackingId = async (req, res, next) => {
+  try {
+    const { trackingId } = req.params;
+
+    const parcel = await Parcel.findOne({
+      trackingId,
+    });
+
+    if (!parcel) {
+      return res.status(404).json({
+        success: false,
+        message: "Parcel not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: parcel,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addCheckPoint = async (req, res, next) => {
+  try {
+
+    const { trackingId } = req.params;
+
+
+    const { error, value } = addCheckpointSchema.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message,
+      });
+    }
+
+
+    const parcel = await Parcel.findOne({
+      trackingId,
+    });
+
+    if (!parcel) {
+      return res.status(404).json({
+        success: false,
+        message: "Parcel not found",
+      });
+    }
+
+    const checkpoint = {
+      location: value.location,
+      title: value.title,
+      description: value.description || "",
+      status: value.status,
+      timestamp: new Date(),
+      updatedBy: req.user?.name || "system",
+    };
+    parcel.checkpoints.push(checkpoint);
+    await parcel.save();
+    return res.status(201).json({
+      success: true,
+      message: "Checkpoint added successfully",
+
+      data: {
+        checkpoint,
         parcel,
       },
     });

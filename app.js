@@ -10,6 +10,8 @@ import swaggerSpec from './config/swagger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import { globalLimiter } from './middlewares/rateLimiter.js';
 import authRouter from './routes/authRoutes.js';
+import parcelRouter from "./routes/parcelRoutes.js";
+
 
 dotenv.config();
 const app=express();
@@ -32,6 +34,7 @@ app.get("/health",(req,res)=>{
 })
 
 app.use("/api/auth",authRouter)
+app.use("/api/parcels", parcelRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -12,20 +12,45 @@ export const addUserSchema = joi.object({
   password: joi.string().min(6).required(),
 });
 
-export const createParcelSchema = Joi.object({
-  senderName: Joi.string().trim().min(3).max(100).required(),
-  senderPhone: Joi.string().trim().required(),
-  senderAddress: Joi.string().trim().min(5).max(500).required(),
-  receiverName: Joi.string().trim().min(3).max(100).required(),
-  receiverPhone: Joi.string().trim().required(),
-  receiverAddress: Joi.string().trim().min(5).max(500).required(),
-  shipmentType: Joi.string().valid("national", "international").required(),
-  originCity: Joi.string().trim().min(2).max(100).required(),
-  destinationCity: Joi.string().trim().min(2).max(100).required(),
-  deliveryType: Joi.string()
+export const createParcelSchema = joi.object({
+  senderName: joi.string().trim().min(3).max(100).required(),
+
+  senderPhone: joi.string().trim().required(),
+
+  senderAddress: joi.string().trim().min(5).max(500).required(),
+
+  receiverName: joi.string().trim().min(3).max(100).required(),
+
+  receiverPhone: joi.string().trim().required(),
+
+  receiverAddress: joi.string().trim().min(5).max(500).required(),
+
+  shipmentType: joi
+    .string()
+    .valid("national", "international")
+    .required(),
+
+  originCity: joi
+    .string()
+    .trim()
+    .min(2)
+    .max(100)
+    .required(),
+
+  destinationCity: joi
+    .string()
+    .trim()
+    .min(2)
+    .max(100)
+    .required(),
+
+  deliveryType: joi
+    .string()
     .valid("sameDay", "overnight", "standard")
     .required(),
-  parcelCategory: Joi.string()
+
+  parcelCategory: joi
+    .string()
     .valid(
       "document",
       "electronics",
@@ -40,7 +65,44 @@ export const createParcelSchema = Joi.object({
     )
     .required(),
 
-  weight: Joi.number().positive().max(100).required(),
-  isRemoteArea: Joi.boolean().default(false),
-  codAmount: Joi.number().min(0).default(0),
+  weight: joi
+    .number()
+    .positive()
+    .max(100)
+    .required(),
+
+  isRemoteArea: joi
+    .boolean()
+    .default(false),
+
+  codAmount: joi
+    .number()
+    .min(0)
+    .default(0),
 });
+
+
+export const addCheckpointSchema = joi.object({
+  location: joi.string().trim().min(2).max(150).required(),
+
+  title: joi.string().trim().min(3).max(200).required(),
+
+  description: joi.string().trim().max(500).allow("").optional(),
+
+  status: joi
+    .string()
+    .valid(
+      "pending",
+      "picked_up",
+      "arrived_at_hub",
+      "in_transit",
+      "out_for_delivery",
+      "delivered",
+      "failed",
+      "returned",
+    )
+    .required(),
+});
+
+
+
