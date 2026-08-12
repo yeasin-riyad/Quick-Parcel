@@ -2,6 +2,7 @@ import { Parcel } from "../models/Parcel.js";
 import { addCheckpointSchema, createParcelSchema } from "../validations/validations.js";
 import { calculateCost } from "../services/calculateCost.js";
 import { generateTrackingId } from "../services/generateTrackingId.js";
+import { STATUS_TRANSITIONS } from "../config/statusTransitions.js";
 
 export const createParcel = async (req, res, next) => {
   try {
@@ -142,11 +143,11 @@ export const getParcelByTrackingId = async (req, res, next) => {
 
 export const addCheckPoint = async (req, res, next) => {
   try {
-
     const { trackingId } = req.params;
 
 
-    const { error, value } = addCheckpointSchema.validate(req.body);
+    const { error, value } =
+      addCheckpointSchema.validate(req.body);
 
     if (error) {
       return res.status(400).json({
@@ -154,7 +155,6 @@ export const addCheckPoint = async (req, res, next) => {
         message: error.details[0].message,
       });
     }
-
 
     const parcel = await Parcel.findOne({
       trackingId,
@@ -167,23 +167,74 @@ export const addCheckPoint = async (req, res, next) => {
       });
     }
 
+    const currentStatus = parcel.currentStatus;
+
+    // Requested new status
+    const nextStatus = value.status;
+
+    if (currentStatus === "delivered") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot update parcel. Parcel has already been delivered.",
+      });
+    }
+
+    if (currentStatus === "returned") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot update parcel. Parcel has already been returned.",
+      });
+    }
+
+    const allowedNextStatuses =
+      STATUS_TRANSITIONS[currentStatus] || [];
+
+    if (!allowedNextStatuses.includes(nextStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status transition: ${currentStatus} → ${nextStatus}`,
+
+        data: {
+          currentStatus,
+          requestedStatus: nextStatus,
+          allowedStatuses: allowedNextStatuses,
+        },
+      });
+    }
+
     const checkpoint = {
       location: value.location,
+
       title: value.title,
+
       description: value.description || "",
-      status: value.status,
+
+      status: nextStatus,
+
       timestamp: new Date(),
+
       updatedBy: req.user?.name || "system",
     };
+
     parcel.checkpoints.push(checkpoint);
+
+    parcel.currentStatus = nextStatus;
+
     await parcel.save();
+
     return res.status(201).json({
       success: true,
+
       message: "Checkpoint added successfully",
 
       data: {
         checkpoint,
-        parcel,
+
+        currentStatus: parcel.currentStatus,
+
+        trackingId: parcel.trackingId,
       },
     });
   } catch (error) {

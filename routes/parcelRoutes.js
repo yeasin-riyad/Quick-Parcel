@@ -1,13 +1,16 @@
 import express from "express";
 
 import {
-    addCheckPoint,
+  addCheckPoint,
   createParcel,
   getMyParcels,
   getParcelByTrackingId,
 } from "../controllers/parcelController.js";
 
-import { adminOnly, protect } from "../middlewares/authMiddleware.js";
+import {
+  adminOnly,
+  protect,
+} from "../middlewares/authMiddleware.js";
 
 const parcelRouter = express.Router();
 
@@ -23,7 +26,7 @@ const parcelRouter = express.Router();
  * /api/parcels:
  *   post:
  *     summary: Create a new parcel
- *     description: Creates a new parcel and automatically calculates the delivery price.
+ *     description: Creates a new parcel and automatically calculates its delivery price.
  *     tags:
  *       - Parcels
  *     security:
@@ -61,6 +64,8 @@ const parcelRouter = express.Router();
  *
  *               senderAddress:
  *                 type: string
+ *                 minLength: 5
+ *                 maxLength: 500
  *                 example: "Mirpur-12, Dhaka"
  *
  *               receiverName:
@@ -75,6 +80,8 @@ const parcelRouter = express.Router();
  *
  *               receiverAddress:
  *                 type: string
+ *                 minLength: 5
+ *                 maxLength: 500
  *                 example: "Kotwali, Chattogram"
  *
  *               shipmentType:
@@ -117,7 +124,8 @@ const parcelRouter = express.Router();
  *
  *               weight:
  *                 type: number
- *                 minimum: 0
+ *                 minimum: 0.1
+ *                 maximum: 100
  *                 example: 2
  *
  *               isRemoteArea:
@@ -141,10 +149,18 @@ const parcelRouter = express.Router();
  *       401:
  *         description: Unauthorized - authentication token missing or invalid
  *
+ *       403:
+ *         description: Forbidden - admin access required
+ *
  *       500:
  *         description: Internal server error
  */
-parcelRouter.post("/", protect,adminOnly,createParcel);
+parcelRouter.post(
+  "/",
+  protect,
+  adminOnly,
+  createParcel
+);
 
 
 /**
@@ -152,7 +168,7 @@ parcelRouter.post("/", protect,adminOnly,createParcel);
  * /api/parcels:
  *   get:
  *     summary: Get my parcels
- *     description: Returns all parcels created by the authenticated user.
+ *     description: Returns all parcels associated with the authenticated user.
  *     tags:
  *       - Parcels
  *     security:
@@ -168,7 +184,11 @@ parcelRouter.post("/", protect,adminOnly,createParcel);
  *       500:
  *         description: Internal server error
  */
-parcelRouter.get("/", protect, getMyParcels);
+parcelRouter.get(
+  "/",
+  protect,
+  getMyParcels
+);
 
 
 /**
@@ -176,7 +196,7 @@ parcelRouter.get("/", protect, getMyParcels);
  * /api/parcels/track/{trackingId}:
  *   get:
  *     summary: Track a parcel
- *     description: Returns the current status and tracking history of a parcel using its tracking ID.
+ *     description: Returns the current status and complete tracking history of a parcel using its tracking ID. This endpoint does not require authentication.
  *     tags:
  *       - Parcels
  *
@@ -184,9 +204,9 @@ parcelRouter.get("/", protect, getMyParcels);
  *       - in: path
  *         name: trackingId
  *         required: true
+ *         description: Unique parcel tracking ID
  *         schema:
  *           type: string
- *         description: Unique parcel tracking ID
  *         example: QP20260812ABC123
  *
  *     responses:
@@ -204,11 +224,92 @@ parcelRouter.get(
   getParcelByTrackingId
 );
 
+
+/**
+ * @swagger
+ * /api/parcels/{trackingId}/checkpoints:
+ *   post:
+ *     summary: Add a parcel checkpoint
+ *     description: Adds a new tracking checkpoint and updates the parcel's current status. Only authenticated administrators can update parcel status. Status transitions are validated according to the parcel's current status.
+ *     tags:
+ *       - Parcels
+ *     security:
+ *       - bearerAuth: []
+ *
+ *     parameters:
+ *       - in: path
+ *         name: trackingId
+ *         required: true
+ *         description: Unique parcel tracking ID
+ *         schema:
+ *           type: string
+ *         example: QP20260812ABC123
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - location
+ *               - title
+ *               - status
+ *             properties:
+ *               location:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 200
+ *                 example: Mirpur Branch, Dhaka
+ *
+ *               title:
+ *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 200
+ *                 example: Parcel Picked Up
+ *
+ *               description:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: Parcel has been successfully picked up from the sender's address.
+ *
+ *               status:
+ *                 type: string
+ *                 enum:
+ *                   - pending
+ *                   - picked_up
+ *                   - arrived_at_hub
+ *                   - in_transit
+ *                   - out_for_delivery
+ *                   - delivered
+ *                   - failed
+ *                   - returned
+ *                 example: picked_up
+ *
+ *     responses:
+ *       201:
+ *         description: Checkpoint added successfully and parcel status updated
+ *
+ *       400:
+ *         description: Invalid request or invalid status transition
+ *
+ *       401:
+ *         description: Unauthorized - authentication token missing or invalid
+ *
+ *       403:
+ *         description: Forbidden - admin access required
+ *
+ *       404:
+ *         description: Parcel not found
+ *
+ *       500:
+ *         description: Internal server error
+ */
 parcelRouter.post(
   "/:trackingId/checkpoints",
   protect,
   adminOnly,
-  addCheckPoint,
+  addCheckPoint
 );
 
 

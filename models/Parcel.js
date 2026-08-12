@@ -1,6 +1,17 @@
 import mongoose from "mongoose";
 import pricingSchema from "./pricing.model.js";
 
+const PARCEL_STATUSES = [
+  "pending",
+  "picked_up",
+  "arrived_at_hub",
+  "in_transit",
+  "out_for_delivery",
+  "delivered",
+  "failed",
+  "returned",
+];
+
 const checkpointSchema = new mongoose.Schema(
   {
     location: {
@@ -18,20 +29,12 @@ const checkpointSchema = new mongoose.Schema(
     description: {
       type: String,
       trim: true,
+      default: "",
     },
 
     status: {
       type: String,
-      enum: [
-        "pending",
-        "picked_up",
-        "arrived_at_hub",
-        "in_transit",
-        "out_for_delivery",
-        "delivered",
-        "failed",
-        "returned",
-      ],
+      enum: PARCEL_STATUSES,
       required: true,
     },
 
@@ -160,6 +163,16 @@ const parcelSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Current status of the parcel
+    currentStatus: {
+      type: String,
+      enum: PARCEL_STATUSES,
+      default: "pending",
+      required: true,
+      index: true,
+    },
+
+    // Complete tracking history
     checkpoints: {
       type: [checkpointSchema],
       default: [],
