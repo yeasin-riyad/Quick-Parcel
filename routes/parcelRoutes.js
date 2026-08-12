@@ -3,6 +3,7 @@ import express from "express";
 import {
   addCheckPoint,
   createParcel,
+  getAllParcels,
   getMyParcels,
   getParcelByTrackingId,
 } from "../controllers/parcelController.js";
@@ -193,6 +194,235 @@ parcelRouter.get(
 
 /**
  * @swagger
+ * /api/parcels/all:
+ *   get:
+ *     summary: Get all parcels
+ *     description: Returns all parcels for administrators with pagination, searching, filtering and sorting support.
+ *     tags:
+ *       - Parcels
+ *     security:
+ *       - bearerAuth: []
+ *
+ *     parameters:
+ *
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         description: Page number
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         example: 1
+ *
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         description: Number of parcels per page. Maximum 100.
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         example: 10
+ *
+ *       - in: query
+ *         name: search
+ *         required: false
+ *         description: Search by tracking ID, sender name, sender phone, receiver name, receiver phone, origin city or destination city.
+ *         schema:
+ *           type: string
+ *         example: Dhaka
+ *
+ *       - in: query
+ *         name: shipmentType
+ *         required: false
+ *         description: Filter parcels by shipment type.
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - national
+ *             - international
+ *         example: national
+ *
+ *       - in: query
+ *         name: deliveryType
+ *         required: false
+ *         description: Filter parcels by delivery type.
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - sameDay
+ *             - overnight
+ *             - standard
+ *         example: overnight
+ *
+ *       - in: query
+ *         name: parcelCategory
+ *         required: false
+ *         description: Filter parcels by parcel category.
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - document
+ *             - electronics
+ *             - fragile
+ *             - clothing
+ *             - food
+ *             - medicine
+ *             - cosmetics
+ *             - books
+ *             - small_package
+ *             - large_package
+ *         example: electronics
+ *
+ *       - in: query
+ *         name: currentStatus
+ *         required: false
+ *         description: Filter parcels by current delivery status.
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - pending
+ *             - picked_up
+ *             - arrived_at_hub
+ *             - in_transit
+ *             - out_for_delivery
+ *             - delivered
+ *             - failed
+ *             - returned
+ *         example: in_transit
+ *
+ *       - in: query
+ *         name: isRemoteArea
+ *         required: false
+ *         description: Filter parcels based on whether the destination is a remote area.
+ *         schema:
+ *           type: boolean
+ *         example: true
+ *
+ *       - in: query
+ *         name: originCity
+ *         required: false
+ *         description: Filter parcels by origin city.
+ *         schema:
+ *           type: string
+ *         example: Dhaka
+ *
+ *       - in: query
+ *         name: destinationCity
+ *         required: false
+ *         description: Filter parcels by destination city.
+ *         schema:
+ *           type: string
+ *         example: Chattogram
+ *
+ *       - in: query
+ *         name: minPrice
+ *         required: false
+ *         description: Minimum parcel price in BDT.
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         example: 200
+ *
+ *       - in: query
+ *         name: maxPrice
+ *         required: false
+ *         description: Maximum parcel price in BDT.
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         example: 1500
+ *
+ *       - in: query
+ *         name: minWeight
+ *         required: false
+ *         description: Minimum parcel weight in kilograms.
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         example: 1
+ *
+ *       - in: query
+ *         name: maxWeight
+ *         required: false
+ *         description: Maximum parcel weight in kilograms.
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         example: 10
+ *
+ *       - in: query
+ *         name: startDate
+ *         required: false
+ *         description: Return parcels created from this date.
+ *         schema:
+ *           type: string
+ *           format: date
+ *         example: 2026-08-01
+ *
+ *       - in: query
+ *         name: endDate
+ *         required: false
+ *         description: Return parcels created until this date.
+ *         schema:
+ *           type: string
+ *           format: date
+ *         example: 2026-08-12
+ *
+ *       - in: query
+ *         name: sort
+ *         required: false
+ *         description: Sort parcels. Prefix the field with '-' for descending order.
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - createdAt
+ *             - -createdAt
+ *             - updatedAt
+ *             - -updatedAt
+ *             - trackingId
+ *             - -trackingId
+ *             - weight
+ *             - -weight
+ *             - pricing.total
+ *             - -pricing.total
+ *             - codAmount
+ *             - -codAmount
+ *         example: -createdAt
+ *
+ *       - in: query
+ *         name: fields
+ *         required: false
+ *         description: Select specific fields to return. Separate fields with commas.
+ *         schema:
+ *           type: string
+ *         example: trackingId,senderName,receiverName,currentStatus,pricing
+ *
+ *     responses:
+ *       200:
+ *         description: All parcels retrieved successfully
+ *
+ *       401:
+ *         description: Unauthorized - authentication token missing or invalid
+ *
+ *       403:
+ *         description: Forbidden - admin access required
+ *
+ *       500:
+ *         description: Internal server error
+ */
+parcelRouter.get(
+  "/all",
+  protect,
+  adminOnly,
+  getAllParcels
+);
+
+
+/**
+ * @swagger
  * /api/parcels/track/{trackingId}:
  *   get:
  *     summary: Track a parcel
@@ -311,6 +541,5 @@ parcelRouter.post(
   adminOnly,
   addCheckPoint
 );
-
 
 export default parcelRouter;

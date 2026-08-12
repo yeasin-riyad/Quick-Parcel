@@ -55,6 +55,7 @@ export const createParcel = async (req, res, next) => {
       ...value,
 
       trackingId,
+      currentStatus:"pending",
 
       // Store complete pricing breakdown
       pricing,
@@ -236,6 +237,383 @@ export const addCheckPoint = async (req, res, next) => {
 
         trackingId: parcel.trackingId,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const getAllParcels = async (req, res, next) => {
+  try {
+    /*
+     * ------------------------------------
+     * 1. Pagination
+     * ------------------------------------
+     */
+
+    const page = Math.max(Number.parseInt(req.query.page) || 1, 1);
+
+    const limit = Math.min(
+      Math.max(Number.parseInt(req.query.limit) || 10, 1),
+      100,
+    );
+
+    const skip = (page - 1) * limit;
+
+    /*
+     * ------------------------------------
+     * 2. Search
+     * ------------------------------------
+     *
+     * Example:
+     * ?search=Dhaka
+     * ?search=Rahim
+     * ?search=QP2026
+     */
+
+    const search = req.query.search?.trim();
+
+    /*
+     * ------------------------------------
+     * 3. Filtering
+     * ------------------------------------
+     */
+
+    const {
+      shipmentType,
+      deliveryType,
+      parcelCategory,
+      currentStatus,
+      isRemoteArea,
+      originCity,
+      destinationCity,
+      minPrice,
+      maxPrice,
+      minWeight,
+      maxWeight,
+      startDate,
+      endDate,
+    } = req.query;
+
+    const filter = {};
+
+    /*
+     * Shipment type
+     */
+
+    if (shipmentType) {
+      filter.shipmentType = shipmentType;
+    }
+
+    /*
+     * Delivery type
+     */
+
+    if (deliveryType) {
+      filter.deliveryType = deliveryType;
+    }
+
+    /*
+     * Parcel category
+     */
+
+    if (parcelCategory) {
+      filter.parcelCategory = parcelCategory;
+    }
+
+    /*
+     * Current parcel status
+     */
+
+    if (currentStatus) {
+      filter.currentStatus = currentStatus;
+    }
+
+    /*
+     * Remote area
+     *
+     * ?isRemoteArea=true
+     */
+
+    if (isRemoteArea !== undefined) {
+      filter.isRemoteArea = isRemoteArea === "true";
+    }
+
+    /*
+     * Origin city
+     */
+
+    if (originCity) {
+      filter.originCity = {
+        $regex: originCity,
+        $options: "i",
+      };
+    }
+
+    /*
+     * Destination city
+     */
+
+    if (destinationCity) {
+      filter.destinationCity = {
+        $regex: destinationCity,
+        $options: "i",
+      };
+    }
+
+    /*
+     * ------------------------------------
+     * 4. Price filter
+     * ------------------------------------
+     *
+     * ?minPrice=100
+     * ?maxPrice=1000
+     */
+
+    if (minPrice || maxPrice) {
+      filter["pricing.total"] = {};
+
+      if (minPrice) {
+        filter["pricing.total"].$gte = Number(minPrice);
+      }
+
+      if (maxPrice) {
+        filter["pricing.total"].$lte = Number(maxPrice);
+      }
+    }
+
+    /*
+     * ------------------------------------
+     * 5. Weight filter
+     * ------------------------------------
+     *
+     * ?minWeight=1
+     * ?maxWeight=10
+     */
+
+    if (minWeight || maxWeight) {
+      filter.weight = {};
+
+      if (minWeight) {
+        filter.weight.$gte = Number(minWeight);
+      }
+
+      if (maxWeight) {
+        filter.weight.$lte = Number(maxWeight);
+      }
+    }
+
+    /*
+     * ------------------------------------
+     * 6. Date filter
+     * ------------------------------------
+     *
+     * ?startDate=2026-08-01
+     * ?endDate=2026-08-12
+     */
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+
+      if (startDate) {
+        filter.createdAt.$gte = new Date(startDate);
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+
+        // Include the entire end date
+        end.setHours(23, 59, 59, 999);
+
+        filter.createdAt.$lte = end;
+      }
+    }
+
+    /*
+     * ------------------------------------
+     * 7. Search
+     * ------------------------------------
+     *
+     * Search fields:
+     * - trackingId
+     * - senderName
+     * - senderPhone
+     * - receiverName
+     * - receiverPhone
+     * - originCity
+     * - destinationCity
+     */
+
+    if (search) {
+      filter.$or = [
+        {
+          trackingId: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          senderName: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          senderPhone: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          receiverName: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          receiverPhone: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          originCity: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          destinationCity: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
+    }
+
+    /*
+     * ------------------------------------
+     * 8. Sorting
+     * ------------------------------------
+     *
+     * Examples:
+     *
+     * ?sort=createdAt
+     * ?sort=-createdAt
+     * ?sort=pricing.total
+     * ?sort=-weight
+     *
+     * "-" means descending.
+     */
+
+    const allowedSortFields = [
+      "createdAt",
+      "updatedAt",
+      "trackingId",
+      "weight",
+      "pricing.total",
+      "codAmount",
+      "originCity",
+      "destinationCity",
+    ];
+
+    let sort = "-createdAt";
+
+    if (req.query.sort) {
+      const requestedSort = req.query.sort;
+
+      const sortField = requestedSort.startsWith("-")
+        ? requestedSort.substring(1)
+        : requestedSort;
+
+      if (allowedSortFields.includes(sortField)) {
+        sort = requestedSort;
+      }
+    }
+
+    /*
+     * ------------------------------------
+     * 9. Field selection
+     * ------------------------------------
+     *
+     * ?fields=trackingId,senderName,currentStatus,pricing
+     */
+
+    let projection = undefined;
+
+    if (req.query.fields) {
+      const requestedFields = req.query.fields
+        .split(",")
+        .map((field) => field.trim())
+        .filter(Boolean);
+
+      projection = requestedFields.join(" ");
+    }
+
+    /*
+     * ------------------------------------
+     * 10. Query database
+     * ------------------------------------
+     */
+
+    const [parcels, total] = await Promise.all([
+      Parcel.find(filter)
+        .select(projection)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Parcel.countDocuments(filter),
+    ]);
+
+    /*
+     * ------------------------------------
+     * 11. Pagination metadata
+     * ------------------------------------
+     */
+
+    const totalPages = Math.ceil(total / limit);
+
+    /*
+     * ------------------------------------
+     * 12. Response
+     * ------------------------------------
+     */
+
+    return res.status(200).json({
+      success: true,
+      message: "Parcels retrieved successfully",
+
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+
+      filters: {
+        search: search || null,
+        shipmentType: shipmentType || null,
+        deliveryType: deliveryType || null,
+        parcelCategory: parcelCategory || null,
+        currentStatus: currentStatus || null,
+        isRemoteArea:
+          isRemoteArea !== undefined
+            ? isRemoteArea === "true"
+            : null,
+        originCity: originCity || null,
+        destinationCity: destinationCity || null,
+        minPrice: minPrice ? Number(minPrice) : null,
+        maxPrice: maxPrice ? Number(maxPrice) : null,
+        minWeight: minWeight ? Number(minWeight) : null,
+        maxWeight: maxWeight ? Number(maxWeight) : null,
+      },
+
+      data: parcels,
     });
   } catch (error) {
     next(error);
