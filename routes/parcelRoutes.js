@@ -2,16 +2,14 @@ import express from "express";
 
 import {
   addCheckPoint,
+  calculateCostCalculator,
   createParcel,
   getAllParcels,
   getMyParcels,
   getParcelByTrackingId,
 } from "../controllers/parcelController.js";
 
-import {
-  adminOnly,
-  protect,
-} from "../middlewares/authMiddleware.js";
+import { adminOnly, protect } from "../middlewares/authMiddleware.js";
 
 const parcelRouter = express.Router();
 
@@ -156,13 +154,7 @@ const parcelRouter = express.Router();
  *       500:
  *         description: Internal server error
  */
-parcelRouter.post(
-  "/",
-  protect,
-  adminOnly,
-  createParcel
-);
-
+parcelRouter.post("/", protect, adminOnly, createParcel);
 
 /**
  * @swagger
@@ -185,12 +177,7 @@ parcelRouter.post(
  *       500:
  *         description: Internal server error
  */
-parcelRouter.get(
-  "/",
-  protect,
-  getMyParcels
-);
-
+parcelRouter.get("/", protect, getMyParcels);
 
 /**
  * @swagger
@@ -413,13 +400,7 @@ parcelRouter.get(
  *       500:
  *         description: Internal server error
  */
-parcelRouter.get(
-  "/all",
-  protect,
-  adminOnly,
-  getAllParcels
-);
-
+parcelRouter.get("/all", protect, adminOnly, getAllParcels);
 
 /**
  * @swagger
@@ -449,11 +430,7 @@ parcelRouter.get(
  *       500:
  *         description: Internal server error
  */
-parcelRouter.get(
-  "/track/:trackingId",
-  getParcelByTrackingId
-);
-
+parcelRouter.get("/track/:trackingId", getParcelByTrackingId);
 
 /**
  * @swagger
@@ -539,7 +516,108 @@ parcelRouter.post(
   "/:trackingId/checkpoints",
   protect,
   adminOnly,
-  addCheckPoint
+  addCheckPoint,
 );
+
+/**
+ * @swagger
+ * /api/parcels/calculate-price:
+ *   post:
+ *     summary: Calculate parcel delivery cost
+ *     description: |
+ *       Calculates the estimated delivery cost based on shipment type,
+ *       origin and destination city, parcel category, weight, delivery type,
+ *       remote area status and COD amount.
+ *
+ *       This is a public endpoint. Authentication is not required.
+ *       This endpoint only calculates the price. It does not create a parcel
+ *       or generate a tracking ID.
+ *     tags:
+ *       - Parcels
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - originCity
+ *               - destinationCity
+ *               - shipmentType
+ *               - parcelCategory
+ *               - weight
+ *               - deliveryType
+ *             properties:
+ *               originCity:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 example: Dhaka
+ *
+ *               destinationCity:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 example: Chattogram
+ *
+ *               shipmentType:
+ *                 type: string
+ *                 enum:
+ *                   - national
+ *                   - international
+ *                 example: national
+ *
+ *               parcelCategory:
+ *                 type: string
+ *                 enum:
+ *                   - document
+ *                   - electronics
+ *                   - fragile
+ *                   - clothing
+ *                   - food
+ *                   - medicine
+ *                   - cosmetics
+ *                   - books
+ *                   - small_package
+ *                   - large_package
+ *                 example: electronics
+ *
+ *               weight:
+ *                 type: number
+ *                 minimum: 0.1
+ *                 maximum: 100
+ *                 example: 2
+ *
+ *               deliveryType:
+ *                 type: string
+ *                 enum:
+ *                   - sameDay
+ *                   - overnight
+ *                   - standard
+ *                 example: overnight
+ *
+ *               isRemoteArea:
+ *                 type: boolean
+ *                 default: false
+ *                 example: false
+ *
+ *               codAmount:
+ *                 type: number
+ *                 minimum: 0
+ *                 default: 0
+ *                 example: 1500
+ *
+ *     responses:
+ *       200:
+ *         description: Delivery cost calculated successfully
+ *
+ *       400:
+ *         description: Invalid request data
+ *
+ *       500:
+ *         description: Internal server error
+ */
+parcelRouter.post("/calculate-price", calculateCostCalculator);
 
 export default parcelRouter;

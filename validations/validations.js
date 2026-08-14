@@ -25,24 +25,11 @@ export const createParcelSchema = joi.object({
 
   receiverAddress: joi.string().trim().min(5).max(500).required(),
 
-  shipmentType: joi
-    .string()
-    .valid("national", "international")
-    .required(),
+  shipmentType: joi.string().valid("national", "international").required(),
 
-  originCity: joi
-    .string()
-    .trim()
-    .min(2)
-    .max(100)
-    .required(),
+  originCity: joi.string().trim().min(2).max(100).required(),
 
-  destinationCity: joi
-    .string()
-    .trim()
-    .min(2)
-    .max(100)
-    .required(),
+  destinationCity: joi.string().trim().min(2).max(100).required(),
 
   deliveryType: joi
     .string()
@@ -65,22 +52,12 @@ export const createParcelSchema = joi.object({
     )
     .required(),
 
-  weight: joi
-    .number()
-    .positive()
-    .max(100)
-    .required(),
+  weight: joi.number().positive().max(100).required(),
 
-  isRemoteArea: joi
-    .boolean()
-    .default(false),
+  isRemoteArea: joi.boolean().default(false),
 
-  codAmount: joi
-    .number()
-    .min(0)
-    .default(0),
+  codAmount: joi.number().min(0).default(0),
 });
-
 
 export const addCheckpointSchema = joi.object({
   location: joi.string().trim().min(2).max(150).required(),
@@ -104,5 +81,37 @@ export const addCheckpointSchema = joi.object({
     .required(),
 });
 
+export const calculateCostSchema = joi.object({
+  originCity: joi.string().trim().min(2).max(100).required(),
 
+  destinationCity: joi.string().trim().min(2).max(100).required(),
 
+  shipmentType: joi.string().valid("national", "international").required(),
+
+  parcelCategory: joi
+    .string()
+    .valid(
+      "document",
+      "electronics",
+      "fragile",
+      "clothing",
+      "food",
+      "medicine",
+      "cosmetics",
+      "books",
+      "small_package",
+      "large_package",
+    )
+    .required(),
+
+  weight: joi.number().positive().max(100).required(),
+
+  deliveryType: joi
+    .string()
+    .valid("sameDay", "overnight", "standard")
+    .required(),
+
+  isRemoteArea: joi.boolean().default(false),
+
+  codAmount: joi.number().min(0).default(0),
+});

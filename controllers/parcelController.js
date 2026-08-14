@@ -1,5 +1,5 @@
 import { Parcel } from "../models/Parcel.js";
-import { addCheckpointSchema, createParcelSchema } from "../validations/validations.js";
+import { addCheckpointSchema, calculateCostSchema, createParcelSchema } from "../validations/validations.js";
 import { calculateCost } from "../services/calculateCost.js";
 import { generateTrackingId } from "../services/generateTrackingId.js";
 import { STATUS_TRANSITIONS } from "../config/statusTransitions.js";
@@ -614,6 +614,39 @@ export const getAllParcels = async (req, res, next) => {
       },
 
       data: parcels,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const calculateCostCalculator = async (req, res, next) => {
+  try {
+    const { error, value } = calculateCostSchema.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message,
+      });
+    }
+
+    const pricing = calculateCost({
+      originCity: value.originCity,
+      destinationCity: value.destinationCity,
+      shipmentType: value.shipmentType,
+      parcelCategory: value.parcelCategory,
+      weight: value.weight,
+      deliveryType: value.deliveryType,
+      isRemoteArea: value.isRemoteArea,
+      codAmount: value.codAmount,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Delivery cost calculated successfully.",
+      data: pricing,
     });
   } catch (error) {
     next(error);

@@ -24,13 +24,16 @@ export const calculateCost = ({
   // 1. Normalize input
   // ------------------------------------
 
-  const normalizedOriginCity = originCity.trim().toLowerCase();
+  const normalizedOriginCity = originCity?.trim().toLowerCase();
 
   const normalizedDestinationCity =
-    destinationCity.trim().toLowerCase();
+    destinationCity?.trim().toLowerCase();
 
   const normalizedShipmentType =
-    shipmentType.trim().toLowerCase();
+    shipmentType?.trim().toLowerCase();
+
+  const normalizedParcelCategory =
+    parcelCategory?.trim().toLowerCase();
 
   // ------------------------------------
   // 2. Validate weight
@@ -41,50 +44,72 @@ export const calculateCost = ({
   }
 
   // ------------------------------------
-  // 3. Check same city
+  // 3. Validate shipment type
+  // ------------------------------------
+
+  if (
+    !["national", "international"].includes(
+      normalizedShipmentType
+    )
+  ) {
+    throw new Error("Invalid shipment type");
+  }
+
+  // ------------------------------------
+  // 4. Check same city
   // ------------------------------------
 
   const isSameCity =
     normalizedOriginCity === normalizedDestinationCity;
 
   // ------------------------------------
-  // 4. Delivery type charge
+  // 5. Delivery type charge
   // ------------------------------------
 
   const deliveryTypeCharge =
-    DELIVERY_TYPE_CHARGES[deliveryType] ?? 0;
+    DELIVERY_TYPE_CHARGES[deliveryType];
 
-  // ------------------------------------
-  // 5. Determine category charge
-  // ------------------------------------
-
-  let categoryCharge = 0;
-
-  if (normalizedShipmentType === "national") {
-    categoryCharge =
-      NATIONAL_CATEGORY_CHARGES[parcelCategory] ?? 0;
-  } else if (normalizedShipmentType === "international") {
-    categoryCharge =
-      INTERNATIONAL_CATEGORY_CHARGES[parcelCategory] ?? 0;
-  } else {
-    throw new Error("Invalid shipment type");
+  if (deliveryTypeCharge === undefined) {
+    throw new Error("Invalid delivery type");
   }
 
   // ------------------------------------
-  // 6. Calculate base price
+  // 6. Category charge
+  // ------------------------------------
+
+  const categoryCharges =
+    normalizedShipmentType === "national"
+      ? NATIONAL_CATEGORY_CHARGES
+      : INTERNATIONAL_CATEGORY_CHARGES;
+
+  const categoryCharge =
+    categoryCharges[normalizedParcelCategory];
+
+  if (categoryCharge === undefined) {
+    throw new Error("Invalid parcel category");
+  }
+
+  // ------------------------------------
+  // 7. Base price
   // ------------------------------------
 
   let basePrice;
+  let deliveryZone;
 
   if (normalizedShipmentType === "national") {
     basePrice = isSameCity ? 50 : 100;
+
+    deliveryZone = isSameCity
+      ? "same_city"
+      : "out_of_city";
   } else {
     // International shipment
     basePrice = 1500;
+    deliveryZone = "international";
   }
 
   // ------------------------------------
-  // 7. Calculate weight charge
+  // 8. Weight charge
   // ------------------------------------
 
   let weightCharge = 0;
@@ -101,7 +126,7 @@ export const calculateCost = ({
   }
 
   // ------------------------------------
-  // 8. Remote area charge
+  // 9. Remote area charge
   // ------------------------------------
 
   const remoteAreaCharge = isRemoteArea
@@ -109,8 +134,12 @@ export const calculateCost = ({
     : 0;
 
   // ------------------------------------
-  // 9. COD charge
+  // 10. COD charge
   // ------------------------------------
+
+  if (codAmount < 0) {
+    throw new Error("COD amount cannot be negative");
+  }
 
   const codCharge =
     codAmount > 0
@@ -118,7 +147,7 @@ export const calculateCost = ({
       : 0;
 
   // ------------------------------------
-  // 10. Calculate subtotal
+  // 11. Calculate subtotal
   // ------------------------------------
 
   const subtotal =
@@ -130,32 +159,30 @@ export const calculateCost = ({
     codCharge;
 
   // ------------------------------------
-  // 11. Apply discount
+  // 12. Validate discount
   // ------------------------------------
 
   const finalDiscount = Math.min(
-    Math.max(discount, 0),
-    subtotal,
+    Math.max(discount || 0, 0),
+    subtotal
   );
 
   // ------------------------------------
-  // 12. Calculate final total
+  // 13. Calculate total
   // ------------------------------------
 
   const total = subtotal - finalDiscount;
 
   // ------------------------------------
-  // 13. Return pricing breakdown
+  // 14. Return pricing breakdown
   // ------------------------------------
 
   return {
     shipmentType: normalizedShipmentType,
 
-    deliveryZone: isSameCity
-      ? "same_city"
-      : "out_of_city",
+    deliveryZone,
 
-    parcelCategory,
+    parcelCategory: normalizedParcelCategory,
 
     basePrice,
 
@@ -170,6 +197,8 @@ export const calculateCost = ({
     codCharge,
 
     discount: finalDiscount,
+
+    subtotal,
 
     total,
 
