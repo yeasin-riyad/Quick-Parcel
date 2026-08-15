@@ -17,7 +17,7 @@ const swaggerDefinition = {
 
   servers: [
     {
-      url: "https://quick-parcel.onrender.com/api",
+      url: "https://quick-parcel.onrender.com",
       description: "Production Server",
     },
     // {
