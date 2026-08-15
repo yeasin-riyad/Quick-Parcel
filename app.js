@@ -28,6 +28,13 @@ app.use(express.json());
 //Global Rate Limiter
 app.use(globalLimiter);
 
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Quick Parcel API is running",
+  });
+});
+
 app.use("/api/docs",swaggerUI.serve,swaggerUI.setup(swaggerSpec));
 
 app.get("/health",(req,res)=>{
