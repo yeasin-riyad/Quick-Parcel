@@ -1,14 +1,9 @@
 import swaggerJSDoc from "swagger-jsdoc";
-import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// console.log(path.join(__dirname, "../routes/*.js"))
 
 const swaggerDefinition = {
   openapi: "3.0.0",
@@ -22,9 +17,13 @@ const swaggerDefinition = {
 
   servers: [
     {
-      url: `http://localhost:${process.env.PORT || 5030}`,
-      description: "Development Server",
+      url: "https://quick-parcel.onrender.com/api",
+      description: "Production Server",
     },
+    // {
+    //   url: `http://localhost:${process.env.PORT || 5030}/api`,
+    //   description: "Development Server",
+    // },
   ],
 
   components: {
@@ -45,13 +44,14 @@ const swaggerDefinition = {
 };
 
 const options = {
-  swaggerDefinition,
-    //   apis:['./routes/*.js'], //Path to the API docs
-
-
+  definition: swaggerDefinition,
   apis: [
-    path.join(__dirname, "../routes/*.js"),
+     "./routes/*.js",
   ],
+
+//   apis: [
+//     path.join(__dirname, "../routes/*.js"),
+//   ],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
